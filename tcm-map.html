@@ -60,55 +60,68 @@
           icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
         });
 
-        // Search for TCM clinics nearby using nearbySearch
+        // Search with both keywords
         const service = new google.maps.places.PlacesService(map);
-        service.nearbySearch(
-          {
-            location: userLocation,
-            radius: 5000,
-            keyword: "traditional chinese medicine", "TCM", "Chinese medicine",
-            type: "health",
-          },
-          (results, status) => {
-            document.getElementById("loading").style.display = "none";
-            console.log("Places search status:", status);
-            console.log("Results:", results);
+        const allResults = new Map(); // To prevent duplicates
+        let activeInfoWindow = null;
+        const bounds = new google.maps.LatLngBounds();
 
-            if (status === google.maps.places.PlacesServiceStatus.OK && results.length) {
-              const bounds = new google.maps.LatLngBounds();
-              let activeInfoWindow = null;
+        const searchTerms = ["traditional chinese medicine", "TCM"];
+        let completedSearches = 0;
 
-              results.forEach((place) => {
-                if (place.geometry && place.geometry.location) {
-                  const marker = new google.maps.Marker({
-                    map,
-                    position: place.geometry.location,
-                    title: place.name,
-                  });
+        searchTerms.forEach(keyword => {
+          service.nearbySearch(
+            {
+              location: userLocation,
+              radius: 5000,
+              keyword: keyword,
+              type: "health",
+            },
+            (results, status) => {
+              completedSearches++;
 
-                  const infowindow = new google.maps.InfoWindow({
-                    content: `<strong>${place.name}</strong><br>${place.vicinity || ''}`,
-                  });
+              if (status === google.maps.places.PlacesServiceStatus.OK && results.length) {
+                results.forEach(place => {
+                  if (place.geometry && place.geometry.location && !allResults.has(place.place_id)) {
+                    allResults.set(place.place_id, place);
 
-                  marker.addListener("click", () => {
-                    if (activeInfoWindow) activeInfoWindow.close();
-                    infowindow.open(map, marker);
-                    activeInfoWindow = infowindow;
-                  });
+                    const marker = new google.maps.Marker({
+                      map,
+                      position: place.geometry.location,
+                      title: place.name,
+                    });
 
-                  bounds.extend(place.geometry.location);
+                    const infowindow = new google.maps.InfoWindow({
+                      content: `<strong>${place.name}</strong><br>${place.vicinity || ''}`,
+                    });
+
+                    marker.addListener("click", () => {
+                      if (activeInfoWindow) activeInfoWindow.close();
+                      infowindow.open(map, marker);
+                      activeInfoWindow = infowindow;
+                    });
+
+                    bounds.extend(place.geometry.location);
+                  }
+                });
+              }
+
+              // When both searches are done
+              if (completedSearches === searchTerms.length) {
+                document.getElementById("loading").style.display = "none";
+
+                if (allResults.size === 0) {
+                  const errorMsg = "No nearby TCM clinics found or the Places API request failed.";
+                  console.error(errorMsg, status);
+                  document.getElementById("error").textContent = errorMsg;
+                  document.getElementById("error").style.display = "block";
+                } else {
+                  map.fitBounds(bounds);
                 }
-              });
-
-              map.fitBounds(bounds);
-            } else {
-              const errorMsg = "No nearby TCM clinics found or the Places API request failed.";
-              console.error(errorMsg, status);
-              document.getElementById("error").textContent = errorMsg;
-              document.getElementById("error").style.display = "block";
+              }
             }
-          }
-        );
+          );
+        });
       }
 
       function getUserLocation() {
@@ -129,7 +142,7 @@
         });
       }
 
-      // Make initMap available globally for Google callback
+      // Expose initMap globally
       window.initMap = initMap;
     </script>
   </body>
