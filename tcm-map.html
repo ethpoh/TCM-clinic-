@@ -1,90 +1,82 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Nearby TCM Clinics</title>
-  <style>
-    html, body { height: 100%; margin: 0; padding: 0; }
-    #map { height: 100%; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
+  <head>
+    <title>Nearby TCM Clinics</title>
+    <style>
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map { height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCSqqZiFermrGv95UXyp9RDmxxZQXtDcrI&libraries=places"></script>
-  <script>
-  function initMap(userLocation) {
-    const map = new google.maps.Map(document.getElementById("map"), {
-      center: userLocation,
-      zoom: 14,
-    });
+    <script>
+      function initMap(userLocation) {
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: userLocation,
+          zoom: 14,
+        });
 
-    // User marker
-    new google.maps.Marker({
-      position: userLocation,
-      map: map,
-      title: "You are here",
-      icon: {
-        url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-      }
-    });
-
-const request = {
-  query: "Traditional Chinese Medicine clinic near me",
-  fields: ["name", "geometry", "formatted_address"],
-  locationBias: userLocation
-};
-
-const placesService = new google.maps.places.PlacesService(map);
-placesService.findPlaceFromQuery(request, (results, status) => {
-  if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-    results.forEach(place => {
-      if (place.geometry && place.geometry.location) {
-        const marker = new google.maps.marker.AdvancedMarkerElement({
+        // You are here marker (updated to HTTPS)
+        const userMarker = new google.maps.marker.AdvancedMarkerElement({
           map: map,
-          position: place.geometry.location,
-          title: place.name,
+          position: userLocation,
+          title: "You are here",
+        });
+
+        // Use findPlaceFromQuery to search for TCM clinics
+        const request = {
+          query: "Traditional Chinese Medicine clinic",
+          fields: ["name", "geometry"],
+          locationBias: new google.maps.LatLng(userLocation.lat, userLocation.lng)
+        };
+
+        const placesService = new google.maps.places.PlacesService(map);
+        placesService.findPlaceFromQuery(request, (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            results.forEach(place => {
+              if (place.geometry && place.geometry.location) {
+                new google.maps.marker.AdvancedMarkerElement({
+                  map: map,
+                  position: place.geometry.location,
+                  title: place.name,
+                });
+              }
+            });
+          } else {
+            console.error("Places search error:", status);
+          }
         });
       }
-    });
-  } else {
-    console.error("Places search error:", status);
-  }
-});
 
-      const infowindow = new google.maps.InfoWindow({
-        content: `<strong>${place.name}</strong><br>${place.vicinity}`
-      });
-
-      marker.addListener("click", () => {
-        infowindow.open(map, marker);
-      });
-    });
-  } else {
-    console.error("Places API Error:", status);
-  }
-});
-  }
-
-  function getUserLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        position => {
-          initMap({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        error => {
-          console.error("Geolocation error:", error);
-          initMap({ lat: 1.3521, lng: 103.8198 }); // fallback: Singapore
+      function getUserLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            position => {
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              };
+              initMap(userLocation);
+            },
+            error => {
+              console.error("Geolocation error:", error);
+              initMap({ lat: 1.3521, lng: 103.8198 }); // Default to Singapore
+            }
+          );
+        } else {
+          initMap({ lat: 1.3521, lng: 103.8198 }); // Fallback
         }
-      );
-    } else {
-      initMap({ lat: 1.3521, lng: 103.8198 }); // fallback
-    }
-  }
+      }
 
-  window.onload = getUserLocation;
-</script>
-</body>
+      window.getUserLocation = getUserLocation;
+    </script>
+
+    <!-- Load Maps API with 'places' and 'marker' libraries -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places,marker&callback=getUserLocation"
+      async
+      defer
+    ></script>
+  </body>
 </html>
