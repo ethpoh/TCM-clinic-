@@ -17,64 +17,71 @@
           zoom: 14,
         });
 
-        // You are here marker (updated to HTTPS)
-        const userMarker = new google.maps.marker.AdvancedMarkerElement({
+        // Show user location
+        new google.maps.marker.AdvancedMarkerElement({
           map: map,
           position: userLocation,
           title: "You are here",
         });
 
-        // Use findPlaceFromQuery to search for TCM clinics
-        const request = {
-          query: "Traditional Chinese Medicine clinic",
-          fields: ["name", "geometry"],
-          locationBias: new google.maps.LatLng(userLocation.lat, userLocation.lng)
-        };
+        // Search for TCM clinics using TextSearch
+        const service = new google.maps.places.PlacesService(map);
+        service.textSearch(
+          {
+            query: "Traditional Chinese Medicine clinic",
+            location: userLocation,
+            radius: 2000,
+          },
+          (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+              results.forEach((place) => {
+                if (place.geometry && place.geometry.location) {
+                  const marker = new google.maps.marker.AdvancedMarkerElement({
+                    map: map,
+                    position: place.geometry.location,
+                    title: place.name,
+                  });
 
-        const placesService = new google.maps.places.PlacesService(map);
-        placesService.findPlaceFromQuery(request, (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            results.forEach(place => {
-              if (place.geometry && place.geometry.location) {
-                new google.maps.marker.AdvancedMarkerElement({
-                  map: map,
-                  position: place.geometry.location,
-                  title: place.name,
-                });
-              }
-            });
-          } else {
-            console.error("Places search error:", status);
+                  const infoWindow = new google.maps.InfoWindow({
+                    content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
+                  });
+
+                  marker.addListener("click", () => {
+                    infoWindow.open(map, marker);
+                  });
+                }
+              });
+            } else {
+              console.error("Places API error:", status);
+            }
           }
-        });
+        );
       }
 
       function getUserLocation() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            position => {
-              const userLocation = {
+            (position) => {
+              initMap({
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
-              };
-              initMap(userLocation);
+              });
             },
-            error => {
-              console.error("Geolocation error:", error);
-              initMap({ lat: 1.3521, lng: 103.8198 }); // Default to Singapore
+            () => {
+              initMap({ lat: 1.3521, lng: 103.8198 }); // fallback: Singapore
             }
           );
         } else {
-          initMap({ lat: 1.3521, lng: 103.8198 }); // Fallback
+          initMap({ lat: 1.3521, lng: 103.8198 }); // fallback
         }
       }
 
       window.getUserLocation = getUserLocation;
     </script>
 
-    <!-- Load Maps API with 'places' and 'marker' libraries -->
+    <!-- Load Google Maps JavaScript API with 'places' and 'marker' libraries -->
     <script
-      src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places,marker&callback=getUserLocation"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCSqqZiFermrGv95UXyp9RDmxxZQXtDcrI&libraries=places,marker&callback=getUserLocation"
       async
       defer
     ></script>
