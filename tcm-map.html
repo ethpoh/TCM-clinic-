@@ -10,65 +10,64 @@
   <body>
     <div id="map"></div>
 
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
     <script>
       function initMap(userLocation) {
         const map = new google.maps.Map(document.getElementById("map"), {
           center: userLocation,
-          zoom: 14,
+          zoom: 15,
         });
 
-        // Show user location
-        new google.maps.marker.AdvancedMarkerElement({
-          map: map,
+        // Add user marker
+        new google.maps.Marker({
           position: userLocation,
+          map: map,
           title: "You are here",
+          icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
         });
 
-        // Search for TCM clinics using TextSearch
         const service = new google.maps.places.PlacesService(map);
-        service.textSearch(
-          {
-            query: "Traditional Chinese Medicine clinic",
-            location: userLocation,
-            radius: 2000,
-          },
-          (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-              results.forEach((place) => {
-                if (place.geometry && place.geometry.location) {
-                  const marker = new google.maps.marker.AdvancedMarkerElement({
-                    map: map,
-                    position: place.geometry.location,
-                    title: place.name,
-                  });
+        service.nearbySearch({
+          location: userLocation,
+          radius: 3000, // in meters
+          keyword: "Traditional Chinese Medicine clinic"
+        }, (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            results.forEach(place => {
+              if (place.geometry && place.geometry.location) {
+                const marker = new google.maps.Marker({
+                  position: place.geometry.location,
+                  map: map,
+                  title: place.name
+                });
 
-                  const infoWindow = new google.maps.InfoWindow({
-                    content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
-                  });
+                const infowindow = new google.maps.InfoWindow({
+                  content: `<strong>${place.name}</strong><br>${place.vicinity || ''}`
+                });
 
-                  marker.addListener("click", () => {
-                    infoWindow.open(map, marker);
-                  });
-                }
-              });
-            } else {
-              console.error("Places API error:", status);
-            }
+                marker.addListener("click", () => {
+                  infowindow.open(map, marker);
+                });
+              }
+            });
+          } else {
+            console.error("No nearby places found or error:", status);
           }
-        );
+        });
       }
 
       function getUserLocation() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            (position) => {
+            position => {
               initMap({
                 lat: position.coords.latitude,
-                lng: position.coords.longitude,
+                lng: position.coords.longitude
               });
             },
             () => {
-              initMap({ lat: 1.3521, lng: 103.8198 }); // fallback: Singapore
+              console.error("Geolocation failed, using fallback");
+              initMap({ lat: 1.3521, lng: 103.8198 }); // Singapore fallback
             }
           );
         } else {
@@ -76,14 +75,7 @@
         }
       }
 
-      window.getUserLocation = getUserLocation;
+      window.onload = getUserLocation;
     </script>
-
-    <!-- Load Google Maps JavaScript API with 'places' and 'marker' libraries -->
-    <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCSqqZiFermrGv95UXyp9RDmxxZQXtDcrI&libraries=places,marker&callback=getUserLocation"
-      async
-      defer
-    ></script>
   </body>
 </html>
