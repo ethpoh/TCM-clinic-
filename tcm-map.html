@@ -28,23 +28,28 @@
       }
     });
 
-    const service = new google.maps.places.PlacesService(map);
-service.nearbySearch({
-  location: userLocation,
-  radius: 5000,
-  keyword: "Chinese medicine",
-  type: ["health"]
-}, (results, status) => {
-  console.log("Places API status:", status);
-  console.log("Results:", results);
-  
-  if (status === google.maps.places.PlacesServiceStatus.OK) {
+const request = {
+  query: "Traditional Chinese Medicine clinic near me",
+  fields: ["name", "geometry", "formatted_address"],
+  locationBias: userLocation
+};
+
+const placesService = new google.maps.places.PlacesService(map);
+placesService.findPlaceFromQuery(request, (results, status) => {
+  if (status === google.maps.places.PlacesServiceStatus.OK && results) {
     results.forEach(place => {
-      const marker = new google.maps.Marker({
-        map,
-        position: place.geometry.location,
-        title: place.name
-      });
+      if (place.geometry && place.geometry.location) {
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          map: map,
+          position: place.geometry.location,
+          title: place.name,
+        });
+      }
+    });
+  } else {
+    console.error("Places search error:", status);
+  }
+});
 
       const infowindow = new google.maps.InfoWindow({
         content: `<strong>${place.name}</strong><br>${place.vicinity}`
