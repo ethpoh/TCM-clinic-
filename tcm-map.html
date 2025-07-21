@@ -29,32 +29,35 @@
     });
 
     const service = new google.maps.places.PlacesService(map);
-    service.nearbySearch({
-      location: userLocation,
-      radius: 5000,
-      keyword: "Chinese medicine",
-      type: ["health"]
-    }, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK) {
-        results.forEach(place => {
-          const marker = new google.maps.Marker({
-            map,
-            position: place.geometry.location,
-            title: place.name
-          });
+service.nearbySearch({
+  location: userLocation,
+  radius: 5000,
+  keyword: "Chinese medicine",
+  type: ["health"]
+}, (results, status) => {
+  console.log("Places API status:", status);
+  console.log("Results:", results);
+  
+  if (status === google.maps.places.PlacesServiceStatus.OK) {
+    results.forEach(place => {
+      const marker = new google.maps.Marker({
+        map,
+        position: place.geometry.location,
+        title: place.name
+      });
 
-          const infowindow = new google.maps.InfoWindow({
-            content: `<strong>${place.name}</strong><br>${place.vicinity}`
-          });
+      const infowindow = new google.maps.InfoWindow({
+        content: `<strong>${place.name}</strong><br>${place.vicinity}`
+      });
 
-          marker.addListener("click", () => {
-            infowindow.open(map, marker);
-          });
-        });
-      } else {
-        console.error("Places API Error:", status);
-      }
+      marker.addListener("click", () => {
+        infowindow.open(map, marker);
+      });
     });
+  } else {
+    console.error("Places API Error:", status);
+  }
+});
   }
 
   function getUserLocation() {
