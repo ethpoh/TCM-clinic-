@@ -23,10 +23,8 @@
       let map;
 
       async function initMap() {
-        // Fallback location: Singapore
         const fallbackLocation = { lat: 1.3521, lng: 103.8198 };
 
-        // Get user location or fallback
         const userLocation = await getUserLocation().catch(() => fallbackLocation);
 
         map = new google.maps.Map(document.getElementById("map"), {
@@ -34,7 +32,6 @@
           zoom: 14,
         });
 
-        // Show user marker
         new google.maps.marker.AdvancedMarkerElement({
           map,
           position: userLocation,
@@ -42,19 +39,13 @@
           icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
         });
 
-        // Create PlacesService using the new Place API style
         const placesService = new google.maps.places.PlacesService(map);
 
-        // Use Place Search with findPlaceFromQuery for TCM Clinics (as nearbySearch is deprecated)
-        // Note: findPlaceFromQuery returns places matching a text query, limited results.
-        // To simulate nearby search, you can query “Traditional Chinese Medicine clinic near <lat,lng>”
-
-        const query = `Traditional Chinese Medicine clinic near ${userLocation.lat},${userLocation.lng}`;
-
-        placesService.findPlaceFromQuery(
+        placesService.textSearch(
           {
-            query: query,
-            fields: ["name", "geometry", "formatted_address"],
+            location: userLocation,
+            radius: 3000,
+            query: "Traditional Chinese Medicine clinic",
           },
           (results, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK && results) {
@@ -75,6 +66,7 @@
                   });
                 }
               });
+
               map.fitBounds(
                 results.reduce((bounds, place) => {
                   if (place.geometry && place.geometry.location) {
