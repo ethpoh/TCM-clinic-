@@ -2,20 +2,38 @@
 <html>
   <head>
     <title>Nearby TCM Clinics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       html, body, #map {
         height: 100%;
         margin: 0;
         padding: 0;
       }
+      #loading, #error {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 10px 20px;
+        z-index: 1;
+        border-radius: 6px;
+        font-family: sans-serif;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      }
+      #error {
+        color: red;
+        display: none;
+      }
     </style>
   </head>
   <body>
+    <div id="loading">Loading nearby TCM clinics...</div>
+    <div id="error"></div>
     <div id="map"></div>
 
-    <!-- ✅ Load Google Maps JS with Places API -->
     <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCSqqZiFermrGv95UXyp9RDmxxZQXtDcrI&libraries=places&callback=initMap"
+      src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&libraries=places&callback=initMap"
       async defer
     ></script>
 
@@ -26,13 +44,13 @@
         const fallbackLocation = { lat: 1.3521, lng: 103.8198 }; // Singapore
         const userLocation = await getUserLocation().catch(() => fallbackLocation);
 
-        // Initialize map
+        // Initialize the map
         map = new google.maps.Map(document.getElementById("map"), {
           center: userLocation,
           zoom: 14,
         });
 
-        // Show user's location
+        // Mark user's location
         new google.maps.Marker({
           map,
           position: userLocation,
@@ -40,17 +58,23 @@
           icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
         });
 
-        // Search for TCM clinics nearby
+        // Search for TCM clinics nearby using nearbySearch
         const service = new google.maps.places.PlacesService(map);
-        service.textSearch(
+        service.nearbySearch(
           {
             location: userLocation,
             radius: 5000,
-            query: "TCM clinic",
+            keyword: "traditional chinese medicine",
+            type: "health",
           },
           (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK) {
+            document.getElementById("loading").style.display = "none";
+            console.log("Places search status:", status);
+            console.log("Results:", results);
+
+            if (status === google.maps.places.PlacesServiceStatus.OK && results.length) {
               const bounds = new google.maps.LatLngBounds();
+              let activeInfoWindow = null;
 
               results.forEach((place) => {
                 if (place.geometry && place.geometry.location) {
@@ -61,11 +85,13 @@
                   });
 
                   const infowindow = new google.maps.InfoWindow({
-                    content: `<strong>${place.name}</strong><br>${place.formatted_address || ''}`,
+                    content: `<strong>${place.name}</strong><br>${place.vicinity || ''}`,
                   });
 
                   marker.addListener("click", () => {
+                    if (activeInfoWindow) activeInfoWindow.close();
                     infowindow.open(map, marker);
+                    activeInfoWindow = infowindow;
                   });
 
                   bounds.extend(place.geometry.location);
@@ -74,7 +100,10 @@
 
               map.fitBounds(bounds);
             } else {
-              console.error("Places search failed:", status);
+              const errorMsg = "No nearby TCM clinics found or the Places API request failed.";
+              console.error(errorMsg, status);
+              document.getElementById("error").textContent = errorMsg;
+              document.getElementById("error").style.display = "block";
             }
           }
         );
